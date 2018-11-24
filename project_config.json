@@ -1,0 +1,16 @@
+{
+    "MONGO": {
+        "HOST": "localhost",
+        "PORT": 27017,
+        "USER": "",
+        "PASSWORD": "",
+        "DATABASE": "german_news"
+    },
+    "KAFKA": {
+        "HOST": "localhost",
+        "PORT": 9092,
+        "USER": "",
+        "PASSWORD": ""
+    }
+}
+
