@@ -1,11 +1,9 @@
 import json
-
 from pymongo import MongoClient
-
 from src.utils import kafka_utils
 
 # Import configurations
-with open('project_config.json', 'r') as f:
+with open('../project_config.json', 'r') as f:
     config = json.load(f)
 
 connection=MongoClient(config['MONGO']['HOST'], config['MONGO']['PORT'])

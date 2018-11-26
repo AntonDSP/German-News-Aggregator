@@ -1,0 +1,15 @@
+{
+    "SOURCE": {
+        "APP": "kafka",
+        "DB": "",
+        "COLLECTION": "scraped_news"
+    },
+    "TARGET": {
+        "APP": "kafka",
+        "DB": "news_test",
+        "NEWS_COLLECTION": "news_test",
+        "CLUSTER_COLLECTION": "clusters_test"
+    },
+    "NEWS_AGGREGATOR_CONFIG": "news_aggregator_config"
+}
+

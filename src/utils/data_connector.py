@@ -1,13 +1,8 @@
-import json
-
 from bson.json_util import loads
-from models.src.news import NewsItem
-from utils import mongodb
-
+from src.news import NewsItem
+from src.utils import mongodb
 from src.utils import kafka_utils
 
-with open('aggregator_config.json', 'r') as f:
-    default_config = json.load(f)
 
 class NewsReader:
     def __init__(self, config: dict):

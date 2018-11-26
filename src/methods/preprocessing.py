@@ -1,13 +1,9 @@
 # Preprocessing and clean-up
-import json
 import gensim
 from nltk.corpus import stopwords
 from nltk.stem.snowball import GermanStemmer
-
 from src.utils import data_connector
 
-with open('aggregator_config.json', 'r') as f:
-    default_config = json.load(f)
 
 stop_words = stopwords.words('german')
 stemmer = GermanStemmer()

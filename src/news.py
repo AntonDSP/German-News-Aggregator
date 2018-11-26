@@ -1,10 +1,6 @@
 # Model of news item. News item represents news published in web
-import json
 from gensim.matutils import cossim
 from src.utils import data_connector
-
-with open('aggregator_config.json', 'r') as f:
-    default_config = json.load(f)
 
 class NewsItem:
     features={}

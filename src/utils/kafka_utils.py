@@ -3,7 +3,7 @@ from bson.json_util import loads, dumps
 import json
 
 # Load configurations
-with open('project_config.json', 'r') as f:
+with open('../project_config.json', 'r') as f:
     config = json.load(f)
 #Build str for server connection
 server = config['KAFKA']['HOST'] + ':' + str(config['KAFKA']['PORT'])
