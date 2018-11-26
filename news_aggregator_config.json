@@ -27,9 +27,8 @@
         "MODEL_NAME": "k_means_minibatch",
         "USE": ["topics"],
         "MODEL_PARAM": {
-          "MODEL": "k_mean_minibatch",
-          "SIMILARITY_MEASURE": "COSINE",
-          "SIMILARITY_THRESHOLD": 0.5
+          "MODEL": "k_means_minibatch",
+          "NUM_OF_CLUSTERS": 100
       }
     }
 }

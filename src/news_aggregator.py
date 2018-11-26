@@ -1,13 +1,8 @@
 import json
 import os
-
-import models.src.topic_detection
-import preprocessing
 from gensim import corpora, models
-from models.src import topic_detection
-from models.src.utils import data_connector
-
-from src import ner_extraction
+from src.methods import ner_extraction, topic_detection, preprocessing
+from src.utils import data_connector
 
 with open('aggregator_config.json', 'r') as f:
     default_config = json.load(f)
@@ -47,25 +42,46 @@ class NewsAggregator:
                 self.topic_detection_model= topic_detection.create_model(model_param=config['TDT']['MODEL_PARAM'], corpus=news_vector_rep)
 
 
-    def recognize_named_entities(self, publications):
-        for publication in publications:
-            ner= ner_extraction.named_entity_extraction(text=publication.concatenate_content(self.config['NER']['USE'])
+    def extract_named_entities(self, publication):
+        return ner_extraction.named_entity_extraction(text=publication.concatenate_content(self.config['NER']['USE'])
                                                         , recognizer=self.named_entities_recognizer)
-            yield ner
 
 
+    def extract_topics(self, publication):
+        publication_cleaned = preprocessing.clean_and_tokenize(text=publication.content['text'], remove_stopwords_model=config['PRERPOCESSING']['REMOVE_STOPDWORS'],
+                                                                   stemming_model=config['PREPROCESSING']['STEMMING'])
+        publication_vec_repres = self.doc2vec(tokens_stream=publication_cleaned, representation=config['TDT']['REPRESENTATION'])
+        return self.topic_detection_model[publication_vec_repres]
 
-    def detect_topics(self, publications):
-        topics={}
-        return topics
 
-    def doc2vec(self, representation, tokens_stream):
+    def doc2vec(self, representation, text_as_tokens):
         if representation=='doc2bow':
-            return self.doc2bow(tokens_stream)
+            return self.dictionary.doc2bow(text_as_tokens)
         else:
             return None
 
 
-    def doc2bow(self, tokens_stream):
-        for tokens in tokens_stream:
-            yield self.dictionary.doc2bow(tokens)
+if __name__ == '__main__':
+    print("Run...")
+    config=default_config
+    #Initilize news aggregator
+    aggregator=NewsAggregator(config)
+    #Read input stream
+    news_stream = data_connector.NewsReader(config['SOURCE']).read_news()
+
+    # Create features
+    for publication in news_stream:
+        publication.features['ners']=aggregator.extract_named_entities(publication)
+        publication.features['topics']=aggregator.extract_topics(publication)
+
+    # Cluster
+    km = MiniBatchKMeans(n_clusters=true_k, init='k-means++', n_init=1,
+                         init_size=1000, batch_size=1000, verbose=opts.verbose)
+    km.fit(publication.features['topics'])
+    # Write back results to mongo
+
+
+    for news_item in news_stream:
+        print(news_item.content['url'])
+
+    print("Finished")

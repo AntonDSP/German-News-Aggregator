@@ -1,12 +1,6 @@
 # Ner extraction
-import json
-
 import de_core_news_sm
-
 from src.utils import data_connector
-
-with open('aggregator_config.json', 'r') as f:
-    default_config = json.load(f)
 
 def splitCount(s: str, count: int)->list:
     """Split large text in smaller parts
@@ -76,8 +70,8 @@ def named_entity_extraction(text: str, recognizer: object) -> list:
 
 
 if __name__ == '__main__':
-    news_reader = data_connector.NewsReader(default_config['SOURCE']['COLLECTION'])
-    news_writer = data_connector.NewsWriter(default_config['TARGET']['COLLECTION'])
+    news_reader = data_connector.NewsReader('scraped_news')
+    news_writer = data_connector.NewsWriter('ner_enriched_news')
     news = news_reader.read_news()
     for news_item in news:
         try:

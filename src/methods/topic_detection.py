@@ -2,11 +2,9 @@
 # Doesn't use the configuration file
 import json
 import os
-
 from gensim import models, corpora
-from models.src.utils import data_connector
-
-from src import preprocessing
+from src.utils import data_connector
+from src.methods import preprocessing
 
 
 def create_model(model_param: dict, corpus):
