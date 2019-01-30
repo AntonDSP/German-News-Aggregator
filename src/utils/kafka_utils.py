@@ -1,9 +1,13 @@
 from kafka import KafkaConsumer, KafkaProducer
 from bson.json_util import loads, dumps
 import json
+import os
 
 # Load configurations
-with open('../project_config.json', 'r') as f:
+os.chdir('/home/vdesktop/PycharmProjects/German-News-Aggregator/')
+root_path=os.getcwd()
+path_project_config=os.path.join(root_path, 'project_config.json')
+with open(path_project_config, 'r') as f:
     config = json.load(f)
 #Build str for server connection
 server = config['KAFKA']['HOST'] + ':' + str(config['KAFKA']['PORT'])

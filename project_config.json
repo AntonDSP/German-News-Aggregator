@@ -1,9 +1,9 @@
 {
     "MONGO": {
-        "HOST": "localhost",
+        "HOST": "80.211.53.235",
         "PORT": 27017,
-        "USER": "",
-        "PASSWORD": "",
+        "USER": "scrapy",
+        "PASSWORD": "icimz51JwqRAZhD6FTwk",
         "DATABASE": "german_news"
     },
     "KAFKA": {

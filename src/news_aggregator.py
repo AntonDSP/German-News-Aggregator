@@ -45,7 +45,7 @@ class NewsAggregator:
         else:
             if news is None:
                 news = data_connector.NewsReader(config['CORPORA']).read_news()
-                news_cleaned = (preprocessing.clean_and_tokenize(news_item.content['text'], remove_stopwords_model=config['PREPROCESSING']['REMOVE_STOPWRDS'],
+                news_cleaned = (preprocessing.clean_and_tokenize(news_item.content['text'], remove_stopwords_model=config['PREPROCESSING']['REMOVE_STOPWORDS'],
                                                                  stemming_model=config['PREPROCESSING']['STEMMING']) for news_item in news)
                 news_vector_rep=(self.doc2vec(text_as_tokens=tokens, representation=config['TDT']['REPRESENTATION']) for tokens in news_cleaned)
                 self.topic_detection_model= topic_detection.create_model(model_param=config['TDT']['MODEL_PARAM'], corpus=news_vector_rep)
@@ -59,10 +59,14 @@ class NewsAggregator:
 
 
     def extract_topics(self, publication):
-        publication_cleaned = preprocessing.clean_and_tokenize(text=publication.content['text'], remove_stopwords_model=config['PRERPOCESSING']['REMOVE_STOPDWORS'],
-                                                                   stemming_model=config['PREPROCESSING']['STEMMING'])
-        publication_vec_repres = self.doc2vec(tokens_stream=publication_cleaned, representation=config['TDT']['REPRESENTATION'])
-        return self.topic_detection_model[publication_vec_repres]
+        publication_cleaned = preprocessing.clean_and_tokenize(text=publication.content['text'], remove_stopwords_model=self.config['PREPROCESSING']['REMOVE_STOPWORDS'],
+                                                                   stemming_model=self.config['PREPROCESSING']['STEMMING'])
+        publication_vec_repres = self.doc2vec(text_as_tokens=publication_cleaned, representation=self.config['TDT']['REPRESENTATION'])
+        topic_dist_vector=self.topic_detection_model[publication_vec_repres]
+        most_relevant_topic_id=max(topic_dist_vector, key=lambda item: item[1])[0]
+        topic_terms_doc2bow_list=self.topic_detection_model.get_topic_terms(topicid=most_relevant_topic_id, topn=10)
+        terms_as_text=[self.dictionary[term[0]] for term in topic_terms_doc2bow_list]
+        return terms_as_text
 
 
     def doc2vec(self, representation, text_as_tokens):
@@ -70,6 +74,14 @@ class NewsAggregator:
             return self.dictionary.doc2bow(text_as_tokens)
         else:
             return None
+
+    def generate_features(self, publications):
+        for publication in publications:
+            publication_cleaned=preprocessing.clean_and_tokenize(publication.content['text'], remove_stopwords_model='nltk', stemming_model=None)
+            publication.content['named_entites']=self.extract_named_entities(publication)
+            publication.content['topics']=self.extract_topics(publication)
+            publication.clust_features = self.doc2vec(representation="doc2bow", text_as_tokens=publication_cleaned)
+            yield publication
 
 
 if __name__ == '__main__':
@@ -89,15 +101,19 @@ if __name__ == '__main__':
     news_stream = data_connector.NewsReader(flow_config['SOURCE']).read_news()
 
     print('# Create features')
-    for publication in news_stream:
-        publication.features['ners']=aggregator.extract_named_entities(publication)
-        publication.features['topics']=aggregator.extract_topics(publication)
+    publications_with_features=aggregator.generate_features(publications=news_stream)
 
     print('# Cluster')
-    clusters=aclust.mclust(news_stream)
-
-    print(clusters)
+    cluster_iter=(cluster for cluster in aclust.mclust(publications_with_features, max_dist=0.9, max_merge_dist=0.9, max_skip=100))
 
     # Write back results to mongo
+    writer=data_connector.NewsWriter(flow_config['TARGET'])
+
+    for cluster in cluster_iter:
+        writer.write_cluster(cluster)
+        for publication in cluster:
+            writer.write_news(publication)
+    print("Cluster generated and published")
+
 
     print("Finished")

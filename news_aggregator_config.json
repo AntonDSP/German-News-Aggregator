@@ -2,33 +2,35 @@
     "CORPORA": {
         "APP": "mongo",
         "DB": "german_news",
-        "COLLECTION": "german_news",
-        "USE": ["title", "description", "text"]
+        "COLLECTION": "publications",
+        "USE": ["title", "text", "keywords"]
     },
     "PREPROCESSING": {
         "REMOVE_STOPWORDS": "nltk",
-        "STEMMING": null,
+        "STEMMING": "nltk",
         "LEMMATIZATION": null
     },
     "NER": {
         "MODEL_NAME": "spacy",
-        "USE": ["title", "description", "text"]
+        "USE": ["title", "text", "keywords"]
     },
     "TDT":{
-        "MODEL_NAME": "lda_doc2bow",
+        "MODEL_NAME": "cc.de.300.vec",
         "USE": ["text"],
-        "REPRESENTATION": "doc2bow",
+        "REPRESENTATION": "word2vec",
         "MODEL_PARAM": {
-          "MODEL": "lda",
-          "NUM_OF_TOPICS":200
+          "MODEL": "",
+          "NUM_OF_TOPICS":""
         }
     },
     "CLUSTERING": {
-        "MODEL_NAME": "k_means_minibatch",
+        "MODEL_NAME": "aclust",
         "USE": ["topics"],
+        "SIMILARITY_MEASURE": "cosine",
+        "THRESHOLD": 0.5,
         "MODEL_PARAM": {
-          "MODEL": "k_means_minibatch",
-          "NUM_OF_CLUSTERS": 100
+          "MODEL": "aclust",
+          "MAX_DIST": 400
       }
     }
 }
