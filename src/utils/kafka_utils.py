@@ -19,7 +19,8 @@ def connectConsumer(topic_name: str)-> KafkaConsumer:
     Returns:
         KafkaConsumer: Kafka consumer object as stream of news items
     """
-    return KafkaConsumer(topic_name, auto_offset_reset='earliest', bootstrap_servers=[server], api_version=(0, 10), consumer_timeout_ms=1000)
+    return KafkaConsumer(topic_name, auto_offset_reset='earliest', client_id='german-news-aggregator', bootstrap_servers=[server], api_version=(0, 10), \
+                         consumer_timeout_ms=1000)
 
 def connectProducer()->KafkaProducer:
     """Connect kafka producer

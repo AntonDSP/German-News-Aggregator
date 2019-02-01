@@ -1,87 +1,58 @@
 import json
 import os
-from gensim import corpora, models
-from src.methods import ner_extraction, topic_detection, preprocessing, aclust
+from src.methods import ner_extraction, preprocessing, aclust, text_representation, clustering
 from src.utils import data_connector
 
-ROOT_PATH=os.path.abspath('../')
+ROOT_PATH=os.path.abspath('./')
 CONFIG_PATH = os.path.join(ROOT_PATH, 'news_aggregator_config.json')
 with open(CONFIG_PATH, 'r') as f:
     default_config = json.load(f)
 
 class NewsAggregator:
     def __init__(self, config=default_config):
-        # Load if exists or create dictionary
-        print('Start news aggregator configuration')
-        self.config=config
-        dictionary_name = config['CORPORA']['COLLECTION']+'.dict'
-        dictionary_path = os.path.join(os.path.join(ROOT_PATH, 'models'), dictionary_name)
-        print(dictionary_path)
-        news=None
-        if os.path.isfile(dictionary_path):
-            self.dictionary=corpora.Dictionary.load(dictionary_path)
-        else:
-            news= data_connector.NewsReader(config['CORPORA']).read_news()
-            texts=(publication.concatenate_content(config['CORPORA']['USE']) for publication in news)
-            cleaned_content=(
-            preprocessing.clean_and_tokenize(texts, remove_stopwords_model=config['PREPROCESSING']['REMOVE_STOPWORDS'],
-                                             stemming_model=config['PREPROCESSING']['STEMMING']))
-            self.dictionary=corpora.Dictionary(cleaned_content)
-            self.dictionary.save(dictionary_path)
+        self.config=default_config
+        #Initialize preprocessor
+        self.preprocessor=preprocessing.Preprocessor(remove_stopwords_model=config['PREPROCESSING']['REMOVE_STOPWORDS'], \
+                          stemming_model=config['PREPROCESSING']['STEMMING'], lemmatization_model=config['PREPROCESSING']['STEMMING'])
+        print("Processing component is initialized successfuly")
 
-        print("Dictionary added: "+dictionary_name)
+        # Initialize text to vector model
+        self.text2vector_model=text_representation.TextToVector(word_representation=config['TEXT_REPRESENTATION']['REPRESENTATION'], \
+                          models_path=config['TEXT_REPRESENTATION']['MODELS_PATH'], model_name=config['TEXT_REPRESENTATION']['MODEL'])
+        print("Text2vector component is added: " + config['TEXT_REPRESENTATION']['MODEL'])
 
-        #Load models
-        #NER extraction model
-        self.named_entities_recognizer= ner_extraction.load_ner_recognizer(model=config['NER']['MODEL_NAME'])
+        #Initialize NER
+        self.ner_model=ner_extraction.NERExtractor(ner_model=config['NER']['MODEL_NAME'])
+        print("Named entities recognizer is added: "+config['NER']['MODEL_NAME'])
 
-        print("Named entities recognizer added: "+self.named_entities_recognizer.name)
-
-        #Topic detection model
-        model_path = os.path.join(ROOT_PATH, os.path.join('models', config['TDT']['MODEL_NAME']))
-        print(model_path)
-        if os.path.isfile(model_path):
-            self.topic_detection_model = models.LdaModel.load(model_path, mmap='r')
-        else:
-            if news is None:
-                news = data_connector.NewsReader(config['CORPORA']).read_news()
-                news_cleaned = (preprocessing.clean_and_tokenize(news_item.content['text'], remove_stopwords_model=config['PREPROCESSING']['REMOVE_STOPWORDS'],
-                                                                 stemming_model=config['PREPROCESSING']['STEMMING']) for news_item in news)
-                news_vector_rep=(self.doc2vec(text_as_tokens=tokens, representation=config['TDT']['REPRESENTATION']) for tokens in news_cleaned)
-                self.topic_detection_model= topic_detection.create_model(model_param=config['TDT']['MODEL_PARAM'], corpus=news_vector_rep)
-                self.topic_detection_model.save(model_path)
-        print('Topic detection model added: '+model_path)
+        #Initlize cluster model
+        self.cluster_model=clustering.CluterModel(model_name=config['CLUSTERING']['MODEL_NAME'], threshold=config['CLUSTERING']['THRESHOLD'] , \
+                                similarity_measure=config['CLUSTERING']['SIMILARITY_MEASURE'], time_range=config['CLUSTERING']['TIME_RANGE'], model_params=config['CLUSTERING']['MODEL_PARAM'])
+        print("Clustering model is added: " + config['CLUSTERING']['MODEL_NAME'])
 
 
-    def extract_named_entities(self, publication):
-        return ner_extraction.named_entity_extraction(text=publication.concatenate_content(self.config['NER']['USE'])
-                                                        , recognizer=self.named_entities_recognizer)
-
-
-    def extract_topics(self, publication):
-        publication_cleaned = preprocessing.clean_and_tokenize(text=publication.content['text'], remove_stopwords_model=self.config['PREPROCESSING']['REMOVE_STOPWORDS'],
-                                                                   stemming_model=self.config['PREPROCESSING']['STEMMING'])
-        publication_vec_repres = self.doc2vec(text_as_tokens=publication_cleaned, representation=self.config['TDT']['REPRESENTATION'])
-        topic_dist_vector=self.topic_detection_model[publication_vec_repres]
-        most_relevant_topic_id=max(topic_dist_vector, key=lambda item: item[1])[0]
-        topic_terms_doc2bow_list=self.topic_detection_model.get_topic_terms(topicid=most_relevant_topic_id, topn=10)
-        terms_as_text=[self.dictionary[term[0]] for term in topic_terms_doc2bow_list]
-        return terms_as_text
-
-
-    def doc2vec(self, representation, text_as_tokens):
-        if representation=='doc2bow':
-            return self.dictionary.doc2bow(text_as_tokens)
-        else:
-            return None
-
-    def generate_features(self, publications):
+    def generate_event_decriptors(self, publications):
         for publication in publications:
-            publication_cleaned=preprocessing.clean_and_tokenize(publication.content['text'], remove_stopwords_model='nltk', stemming_model=None)
-            publication.content['named_entites']=self.extract_named_entities(publication)
-            publication.content['topics']=self.extract_topics(publication)
-            publication.clust_features = self.doc2vec(representation="doc2bow", text_as_tokens=publication_cleaned)
+            # Named entities recognition
+            named_entities=self.ner_model.extract(publication.concatenate_content(self.config['NER']['USE']))
+            publication.content['ne_locations']=named_entities['locations']
+            publication.content['ne_persons']=named_entities['persons']
+            publication.content['ne_orgs']=named_entities['orgs']
+            publication.content['ne_misc']=named_entities['misc']
+            print("ner finished")
+            # Top 3 discussed topics
+            #Sentiment score
+            #Keywords
             yield publication
+
+    def cluster(self, publications):
+        for publication in publications:
+            tokenized_text = self.preprocessor.clean_and_tokenize(publication.concatenate_content(self.config['CLUSTERING']['USE']))
+            publication.clust_features = self.text2vector_model.transform(tokenized_text)
+            print("tokenized")
+        publications_with_cluster_assignments=self.cluster_model.assign_clusters(publications)
+        return publications_with_cluster_assignments
+
 
 
 if __name__ == '__main__':
@@ -97,23 +68,47 @@ if __name__ == '__main__':
 
     print('#Initilize news aggregator')
     aggregator=NewsAggregator(news_aggregator_config)
-    print('#Read input stream')
-    news_stream = data_connector.NewsReader(flow_config['SOURCE']).read_news()
 
-    print('# Create features')
-    publications_with_features=aggregator.generate_features(publications=news_stream)
+    print('#Create reader and writer for input stream')
 
-    print('# Cluster')
-    cluster_iter=(cluster for cluster in aclust.mclust(publications_with_features, max_dist=0.9, max_merge_dist=0.9, max_skip=100))
 
     # Write back results to mongo
-    writer=data_connector.NewsWriter(flow_config['TARGET'])
+    #writer=data_connector.NewsWriter(app=flow_config['TARGET']['APP'], db=flow_config['TARGET']['DB'], collection=flow_config['TARGET']['COLLECTION'] \
+    #                                 ,cluster_collection=flow_config['TARGET']['CLUSTER_COLLECTION'])
 
-    for cluster in cluster_iter:
-        writer.write_cluster(cluster)
-        for publication in cluster:
-            writer.write_news(publication)
-    print("Cluster generated and published")
+    news_reader=data_connector.NewsReader(app=flow_config['SOURCE']['APP'], db=flow_config['SOURCE']['DB'],collection=flow_config['SOURCE']['COLLECTION'])
+
+    news_stream = news_reader.read_news()
+   # print('# Extract event descriptions')
+   # publications_with_event_descriptions=list(aggregator.generate_event_decriptors(publications=news_stream))
+    #publications_with_event_descriptions=list(news_stream)
+    #for p in publications_with_event_descriptions:
+     #   print(p)
+
+    print('# Clustering')
+    l=list(news_stream)
+    publications_with_cluster_assignments=aggregator.cluster(publications=l)
+
+    for p in publications_with_cluster_assignments:
+        print(p.content['cluster'])
+
+    #pubs=aggregator.cluster_model.assign_existing_clusters(news_stream)
+    #clusters=aggregator.cluster_model.create_news_clusters(pubs)
+
+    #for cluster in clusters:
+    #    for p in cluster:
+    #        print("------------------------")
+    #        print(p[0].content['cluster'])
+    #for publ in publications_with_cluster_assignments:
+     #
+    #    print(publ)
+
+
+    # for cluster in clusters:
+    #     writer.write_cluster(cluster)
+    #     for publication in cluster:
+    #         writer.write_news(publication)
+    # print("Cluster generated and published")
 
 
     print("Finished")

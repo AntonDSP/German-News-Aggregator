@@ -1,9 +1,9 @@
 # Model of news item. News item represents news published in web
-from gensim.matutils import cossim
 from src.utils import data_connector
 import os
 import json
-import uuid
+import numpy as np
+import dateutil.parser
 
 class NewsItem:
     features={}
@@ -12,22 +12,30 @@ class NewsItem:
     threshold=0.1
     def __init__(self, content):
         self.content=content
-    #    self.content['publication_id']= str(uuid.uuid3(uuid.NAMESPACE_URL, (content['url']+content['published'])))
 
     def distance(self, other):
-        if self.similarity_measure=='cosine':
-            distance=1-cossim(self.clust_features, other.clust_features)
+        if isinstance(self.clust_features, np.ndarray)==False or isinstance(other.clust_features, np.ndarray)==False:
+            distance=1
+        elif abs((dateutil.parser.parse(self.content['published']).replace(tzinfo=None)-dateutil.parser.parse(other.content['published']).replace(tzinfo=None)).days)>3:
+            # If difference between two publications more than 3 days, then it can be about the same story
+            distance=1
+        elif self.similarity_measure=='cosine':
+            distance=1-(np.dot(self.clust_features,other.clust_features)/(np.linalg.norm(self.clust_features)*np.linalg.norm(other.clust_features)))
         else:
             distance=None
-        print("Distnace: "+str(distance))
         return distance
 
     def is_correlated(self, other):
-        if self.similarity_measure=='cosine':
-            is_similiar= cossim(self.clust_features, other.clust_features)>self.threshold
+        if isinstance(self.clust_features, np.ndarray) == False or isinstance(other.clust_features,np.ndarray) == False:
+            is_similiar=False
+        elif abs((dateutil.parser.parse(self.content['published']).replace(tzinfo=None)-dateutil.parser.parse(other.content['published']).replace(tzinfo=None)).days)>3:
+            # If difference between two publications more than 3 days, then it can be about the same story
+            is_similiar=False
+        elif self.similarity_measure=='cosine':
+            cos_similarity=(np.dot(self.clust_features,other.clust_features)/(np.linalg.norm(self.clust_features)*np.linalg.norm(other.clust_features)))
+            is_similiar= cos_similarity>self.threshold
         else:
             is_similiar=False
-        print("Is similiar: "+str(is_similiar))
         return is_similiar
 
     def concatenate_content(self, content_parts):

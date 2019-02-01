@@ -65,7 +65,7 @@ class NERExtractor:
         """
         nes={}
         if self.ner_model == 'spacy':
-            nes=self.extract_spacy(text, self.recognizer)
+            nes=self.extract_spacy(text)
         return nes
 
 

@@ -8,18 +8,17 @@ from src.methods import preprocessing
 import numpy
 
 class TextToVector:
-    def __init__(self, word_representation, models_path, model_name, dictionary_name):
+    def __init__(self, word_representation, models_path, model_name):
         self.word_representation=word_representation
         self.models_path=models_path
-        self.dictionary_name=dictionary_name
         self.model_name=model_name
         if self.word_representation=='doc2bow':
-            dictionary_path = os.path.join(self.models_path, self.dictionary_name)
+            dictionary_path = os.path.join(self.models_path, self.model_name)
             self.dictionary = corpora.Dictionary.load(dictionary_path)
         elif self.word_representation=='word2vec':
                 wv_model_path = os.path.join(self.models_path, self.model_name)
                 path=os.path.abspath(wv_model_path)
-                self.model=KeyedVectors.load_word2vec_format(datapath(path), binary=False, limit=100000)
+                self.model=KeyedVectors.load_word2vec_format(datapath(path), binary=False, limit=50000)
         elif self.word_representation=='tfidf':
             print("Do something")
         else:
@@ -35,7 +34,6 @@ class TextToVector:
             for token in tokenized_document:
                 try:
                     list_of_vectors.append(self.model[token])
-                    print(self.model[token].shape)
                 except:
                     pass # do nothing as some words ar simply not in dictionary
             # Compute doc vector as average of word vectors
@@ -57,7 +55,7 @@ if __name__ == '__main__':
 
     publications = news_reader.read_news()
 
-    text2vector_model=TextToVector(word_representation='word2vec', models_path='models', model_name='cc.de.300.vec', dictionary_name=None)
+    text2vector_model=TextToVector(word_representation='word2vec', models_path='models', model_name='cc.de.300.vec')
     preprocessor=preprocessing.Preprocessor(remove_stopwords_model='nltk', stemming_model=None,lemmatization_model=None)
     for publication in publications:
         try:
