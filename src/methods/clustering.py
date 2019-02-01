@@ -32,7 +32,7 @@ class CluterModel:
                 publication.content['cluster']=max(nearest_clusters, key=nearest_clusters.get)
             else:
                 publication.content['cluster']=''
-            print("Publication_id: "+publication.content['publication_id']+"Cluster_id: " + publication.content['cluster'])
+          #  print("Publication_id: "+publication.content['publication_id']+"Cluster_id: " + publication.content['cluster'])
             new_l_publications.append(publication)
         return new_l_publications
 
@@ -54,7 +54,7 @@ class CluterModel:
                 for l_publication in l_publications:
                     if publ.content['publication_id']==l_publication.content['publication_id']:
                         l_publication.content['cluster']=cluster_id
-                        print("Publication_id: " + l_publication.content['publication_id'] + "Cluster_id: " + l_publication.content['cluster'])
+                    #    print("Publication_id: " + l_publication.content['publication_id'] + "Cluster_id: " + l_publication.content['cluster'])
         return l_publications
 
 

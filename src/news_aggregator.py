@@ -2,6 +2,8 @@ import json
 import os
 from src.methods import ner_extraction, preprocessing, aclust, text_representation, clustering
 from src.utils import data_connector
+import time
+import kafka
 
 ROOT_PATH=os.path.abspath('./')
 CONFIG_PATH = os.path.join(ROOT_PATH, 'news_aggregator_config.json')
@@ -31,7 +33,8 @@ class NewsAggregator:
         print("Clustering model is added: " + config['CLUSTERING']['MODEL_NAME'])
 
 
-    def generate_event_decriptors(self, publications):
+    def run_pipeline(self, publications):
+        print("Event description extraction and feature generation")
         for publication in publications:
             # Named entities recognition
             named_entities=self.ner_model.extract(publication.concatenate_content(self.config['NER']['USE']))
@@ -39,19 +42,22 @@ class NewsAggregator:
             publication.content['ne_persons']=named_entities['persons']
             publication.content['ne_orgs']=named_entities['orgs']
             publication.content['ne_misc']=named_entities['misc']
-            print("ner finished")
             # Top 3 discussed topics
             #Sentiment score
             #Keywords
-            yield publication
 
-    def cluster(self, publications):
-        for publication in publications:
-            tokenized_text = self.preprocessor.clean_and_tokenize(publication.concatenate_content(self.config['CLUSTERING']['USE']))
+            #Clustering, feature generation
+            tokenized_text = self.preprocessor.clean_and_tokenize(
+            publication.concatenate_content(self.config['CLUSTERING']['USE']))
             publication.clust_features = self.text2vector_model.transform(tokenized_text)
-            print("tokenized")
-        publications_with_cluster_assignments=self.cluster_model.assign_clusters(publications)
+
+        # Cluster assignment
+        print("Clustering")
+        publications_with_cluster_assignments = self.cluster_model.assign_clusters(publications)
+
+
         return publications_with_cluster_assignments
+
 
 
 
@@ -78,19 +84,19 @@ if __name__ == '__main__':
 
     news_reader=data_connector.NewsReader(app=flow_config['SOURCE']['APP'], db=flow_config['SOURCE']['DB'],collection=flow_config['SOURCE']['COLLECTION'])
 
-    news_stream = news_reader.read_news()
-   # print('# Extract event descriptions')
-   # publications_with_event_descriptions=list(aggregator.generate_event_decriptors(publications=news_stream))
-    #publications_with_event_descriptions=list(news_stream)
-    #for p in publications_with_event_descriptions:
-     #   print(p)
-
-    print('# Clustering')
-    l=list(news_stream)
-    publications_with_cluster_assignments=aggregator.cluster(publications=l)
-
-    for p in publications_with_cluster_assignments:
-        print(p.content['cluster'])
+    print('# Run pipeline')
+    while(True):
+        news_stream = news_reader.read_news()
+        l=list(news_stream)
+        publications_result=aggregator.run_pipeline(publications=l)
+        i=0
+        for p in publications_result:
+            i=i+1
+            print(p.content['cluster']+"       "+str(i))
+        print('looping..')
+        news_reader.reader.commit()
+        time.sleep(60)
+    news_reader.reader.close()
 
     #pubs=aggregator.cluster_model.assign_existing_clusters(news_stream)
     #clusters=aggregator.cluster_model.create_news_clusters(pubs)

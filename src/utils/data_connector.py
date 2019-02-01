@@ -9,16 +9,19 @@ class NewsReader:
         self.collection=collection
         self.app=app
         self.db=db
+        if self.app == 'mongo':
+           self.reader=mongodb.connect2db(db=self.db )
+        elif self.app== 'kafka':
+            self.reader= kafka_utils.connectConsumer(self.collection)
+
 
     def read_news(self):
         if self.app == 'mongo':
-           mongo_client=mongodb.connect2db(db=self.db )
-           mongodb_news_stream = mongodb.mongo_collection(collection_name=self.collection, db=mongo_client)
+           mongodb_news_stream = self.reader.mongo_collection(collection_name=self.collection, db=mongo_client)
            for item in mongodb_news_stream:
                yield NewsItem(item)
         elif self.app== 'kafka':
-            kafka_news_stream = kafka_utils.connectConsumer(self.collection)
-            for msg in kafka_news_stream:
+            for msg in self.reader:
                 item=loads(msg.value)
                 yield NewsItem(item)
 
