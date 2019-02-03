@@ -10,6 +10,11 @@
         "STEMMING": "nltk",
         "LEMMATIZATION": null
     },
+    "TEXT_REPRESENTATION": {
+        "REPRESENTATION": "word2vec",
+        "MODELS_PATH":"models",
+        "MODEL":"cc.de.300.vec"
+    },
     "NER": {
         "MODEL_NAME": "spacy",
         "USE": ["title", "text", "keywords"]
@@ -23,11 +28,21 @@
           "NUM_OF_TOPICS":""
         }
     },
+    "KEYPHRASES":{
+        "MODEL_NAME": "rake",
+        "USE":["text"],
+        "NUM_OF_PHRASES": 5
+    },
+    "SENTIMENT_ANALYSIS":{
+        "MODEL_NAME": "blob",
+        "USE": ["text"]
+    },
     "CLUSTERING": {
         "MODEL_NAME": "aclust",
-        "USE": ["topics"],
+        "USE": ["title"],
         "SIMILARITY_MEASURE": "cosine",
         "THRESHOLD": 0.5,
+        "TIME_RANGE": 3,
         "MODEL_PARAM": {
           "MODEL": "aclust",
           "MAX_DIST": 400

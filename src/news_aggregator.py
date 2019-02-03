@@ -1,9 +1,10 @@
 import json
 import os
-from src.methods import ner_extraction, preprocessing, aclust, text_representation, clustering
+from src.methods import ner_extraction, preprocessing, text_representation, clustering, keywords_extraction, sentiment_analysis
 from src.utils import data_connector
 import time
-import kafka
+
+
 
 ROOT_PATH=os.path.abspath('./')
 CONFIG_PATH = os.path.join(ROOT_PATH, 'news_aggregator_config.json')
@@ -27,7 +28,13 @@ class NewsAggregator:
         self.ner_model=ner_extraction.NERExtractor(ner_model=config['NER']['MODEL_NAME'])
         print("Named entities recognizer is added: "+config['NER']['MODEL_NAME'])
 
-        #Initlize cluster model
+        #Initialize key phrases model
+        self.keyphrase_model=keywords_extraction.KeyPhraseExtractor(model_name=config['KEYPHRASES']['MODEL_NAME'], num_of_phrases=config['KEYPHRASES']['NUM_OF_PHRASES'])
+
+        #Initialize sentiment analysis model
+        self.sentiment_analysis_model=sentiment_analysis.SentimentAnalyzer(model_name=config['SENTIMENT_ANALYSIS']['MODEL_NAME'])
+
+        #Initialize cluster model
         self.cluster_model=clustering.CluterModel(model_name=config['CLUSTERING']['MODEL_NAME'], threshold=config['CLUSTERING']['THRESHOLD'] , \
                                 similarity_measure=config['CLUSTERING']['SIMILARITY_MEASURE'], time_range=config['CLUSTERING']['TIME_RANGE'], model_params=config['CLUSTERING']['MODEL_PARAM'])
         print("Clustering model is added: " + config['CLUSTERING']['MODEL_NAME'])
@@ -44,8 +51,11 @@ class NewsAggregator:
             publication.content['ne_misc']=named_entities['misc']
             # Top 3 discussed topics
             #Sentiment score
+            sentiment_scores=self.sentiment_analysis_model.score(publication.concatenate_content(self.config['SENTIMENT_ANALYSIS']['USE']))
+            publication.content['polarity']=sentiment_scores['polarity']
+            publication.content['subjectivity']=sentiment_scores['subjectivity']
             #Keywords
-
+            publication.content['keyphrases']=self.keyphrase_model.extract(publication.concatenate_content(self.config['KEYPHRASES']['USE']))
             #Clustering, feature generation
             tokenized_text = self.preprocessor.clean_and_tokenize(
             publication.concatenate_content(self.config['CLUSTERING']['USE']))
@@ -79,8 +89,7 @@ if __name__ == '__main__':
 
 
     # Write back results to mongo
-    #writer=data_connector.NewsWriter(app=flow_config['TARGET']['APP'], db=flow_config['TARGET']['DB'], collection=flow_config['TARGET']['COLLECTION'] \
-    #                                 ,cluster_collection=flow_config['TARGET']['CLUSTER_COLLECTION'])
+    writer=data_connector.NewsWriter(app=flow_config['TARGET']['APP'], db=flow_config['TARGET']['DB'], collection=flow_config['TARGET']['COLLECTION'])
 
     news_reader=data_connector.NewsReader(app=flow_config['SOURCE']['APP'], db=flow_config['SOURCE']['DB'],collection=flow_config['SOURCE']['COLLECTION'])
 
@@ -93,6 +102,7 @@ if __name__ == '__main__':
         for p in publications_result:
             i=i+1
             print(p.content['cluster']+"       "+str(i))
+            writer.write_news(p)
         print('looping..')
         news_reader.reader.commit()
         time.sleep(60)

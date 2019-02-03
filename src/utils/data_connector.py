@@ -17,8 +17,9 @@ class NewsReader:
 
     def read_news(self):
         if self.app == 'mongo':
-           mongodb_news_stream = self.reader.mongo_collection(collection_name=self.collection, db=mongo_client)
-           for item in mongodb_news_stream:
+            mongo_collection=self.collection
+            mongodb_news_stream = self.reader.german_news.find()
+            for item in mongodb_news_stream:
                yield NewsItem(item)
         elif self.app== 'kafka':
             for msg in self.reader:
@@ -26,11 +27,10 @@ class NewsReader:
                 yield NewsItem(item)
 
 class NewsWriter:
-    def __init__(self, app, db, collection, cluster_collection):
+    def __init__(self, app, db, collection):
         self.app=app
         self.db=db
         self.collection=collection
-        self.cluster_collection=cluster_collection
         if self.app== 'mongo':
             self.writer=mongodb.connect2db(self.db)
         elif self.app== 'kafka':

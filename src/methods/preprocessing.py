@@ -3,6 +3,7 @@ import gensim
 from nltk.corpus import stopwords
 from nltk.stem.snowball import GermanStemmer
 from src.utils import data_connector
+from textblob_de import TextBlobDE as TextBlob
 
 """Class responsible for preprocessing"""
 class Preprocessor:
@@ -58,6 +59,9 @@ class Preprocessor:
         finally:
             return stemmed_list
 
+    def lemmatization_blob(self, text):
+        return TextBlob(text).words.lemmatize()
+
     def clean_and_tokenize(self, text: str)->list:
         """Run preprocessing as defined in the aggregator configuration file
         Args:
@@ -70,6 +74,8 @@ class Preprocessor:
             text_as_tokens = self.remove_stop_word_nltk(text_as_tokens)
         if self.stemming_model=='nltk':
             text_as_tokens = self.stemming_nltk(text_as_tokens)
+        if self.lemmatization_model=='blob':
+            text_as_tokens=list(self.lemmatization_blob(text))
         return text_as_tokens
 
 
