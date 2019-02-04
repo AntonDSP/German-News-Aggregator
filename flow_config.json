@@ -7,8 +7,7 @@
     "TARGET": {
         "APP": "kafka",
         "DB": "",
-        "COLLECTION": "processed_publications",
-        "CLUSTER_COLLECTION": "processed_clusters"
+        "COLLECTION": "processed_publications_test2"
     },
     "NEWS_AGGREGATOR_CONFIG": "news_aggregator_config"
 }

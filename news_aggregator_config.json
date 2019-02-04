@@ -20,12 +20,12 @@
         "USE": ["title", "text", "keywords"]
     },
     "TDT":{
-        "MODEL_NAME": "cc.de.300.vec",
+        "MODEL_NAME": "lda_300",
         "USE": ["text"],
         "REPRESENTATION": "word2vec",
         "MODEL_PARAM": {
-          "MODEL": "",
-          "NUM_OF_TOPICS":""
+          "METHOD": "lda",
+          "MAX_NUM_OF_TOPICS": 3
         }
     },
     "KEYPHRASES":{

@@ -4,24 +4,30 @@ import json
 import os
 from gensim import models, corpora
 from src.utils import data_connector
-from src.methods import preprocessing
+from src.methods import preprocessing, text_representation
 
 class TopicDetector:
-    def __init__(self, model_name, corpus_vector_form, model_path, num_topics):
+    def __init__(self, model_name, models_path, method, train_corpus, num_topics):
         self.model_name=model_name
-        self.corpus_vector_form=corpus_vector_form
-        if self.model_name=='lda':
-            if os.path.isfile(model_path):
-                self.model = models.LdaModel.load(model_path, mmap='r')
+        self.max_num_topics=num_topics
+        self.models_path=models_path
+        self.train_corpus=train_corpus
+        self.method=method
+        file_path=os.path.join(self.models_path, self.model_name)
+        if self.method=='lda':
+            if os.path.isfile(file_path):
+                self.topic_detection_model = models.LdaModel.load(file_path, mmap='r')
             else:
-                self.model=models.LdaModel(self.corpus_vector_form, num_topics=num_topics)
+                self.topic_detection_model=models.LdaModel(self.train_corpus, num_topics=self.num_topics)
+                self.topic_detection_model.save(file_path)
         else:
             print('This model is not implemented')
 
-    def get_topics(self, text_as_vector, max_topics=10):
-        topic_dist_vector=self.model[text_as_vector]
+    def get_topics(self, text_as_vector, show_top_n_topics):
+        self.topic_detection_model.update(text_as_vector)
+        topic_dist_vector=self.topic_detection_model[text_as_vector]
         most_relevant_topic_id=max(topic_dist_vector, key=lambda item: item[1])[0]
-        return self.model.get_topic_terms(topicid=most_relevant_topic_id, topn=max_topics)
+        return self.topic_detection_model.get_topic_terms(topicid=most_relevant_topic_id, topn=show_top_n_topics)
 
 
 if __name__ == '__main__':
@@ -35,23 +41,21 @@ if __name__ == '__main__':
     news_aggregator_file_name=flow_config['NEWS_AGGREGATOR_CONFIG']+".json"
     news_aggregator_config_path= news_aggregator_file_name
     with open(news_aggregator_config_path, 'r') as f:
-        news_aggregator_config = json.load(f)
+        na_config = json.load(f)
 
-    model_path = os.path.join('models', news_aggregator_config['TDT']['MODEL_NAME'])
-    if os.path.isfile(model_path):
-        topic_detection_model = models.LdaModel.load(model_path, mmap='r')
-    else:
-        news = data_connector.NewsReader(news_aggregator_config['CORPORA']).read_news()
-        news_cleaned = (preprocessing.clean_and_tokenize(news_item.content['text'],
-                                                         remove_stopwords_model=news_aggregator_config['PREPROCESSING']['REMOVE_STOPWORDS'],
-                                                         stemming_model=news_aggregator_config['PREPROCESSING']['STEMMING']) for news_item in news)
+    publications=data_connector.NewsReader(app='mongo', db='german_news', collection='publications').read_news()
 
-        dictionary_name = news_aggregator_config['CORPORA']['DB']+'.dict'
-        dictionary_path = os.path.join('models',dictionary_name)
-        dictionary=corpora.Dictionary.load(dictionary_path)
-        news_vector_rep = (dictionary.doc2bow(item) for item in news_cleaned)
-        topic_detection_model = create_model(model_param=news_aggregator_config['TDT']['MODEL_PARAM'], corpus=news_vector_rep)
+    preprocessor=preprocessing.Preprocessor(remove_stopwords_model='nltk', stemming_model=None, lemmatization_model=None)
+    publications_tokenized = [preprocessor.clean_and_tokenize(publication.content['text']) for publication in publications]
 
-    print(topic_detection_model.show_topics(num_topics=10))
+    text2vector_model=text_representation.TextToVector(word_representation='word2vec', models_path='models', model_name='cc.de.300.vec')
+
+    corpus_as_vector=[text2vector_model.transform(publication_tokenized) for publication_tokenized in publications_tokenized]
+
+    topic_detection_model=TopicDetector(model_name='lda_word2vec', models_path='models', method='lda', train_corpus=corpus_as_vector, num_topics=100)
+
+    for publication_vec in corpus_as_vector:
+        topics=topic_detection_model.get_topics(publication_vec, show_top_n_topics=3)
+        print(topics)
 
     print("Finished")
