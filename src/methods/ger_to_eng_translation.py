@@ -1,6 +1,5 @@
 from time import sleep
 import pydeepl
-import deepl
 from kafka import KafkaConsumer, KafkaProducer
 from bson.json_util import loads, dumps
 
