@@ -2,7 +2,7 @@
     "SOURCE": {
         "APP": "kafka",
         "DB": "",
-        "COLLECTION": "publications"
+        "COLLECTION": "publications_crawled"
     },
     "TARGET": {
         "APP": "kafka",

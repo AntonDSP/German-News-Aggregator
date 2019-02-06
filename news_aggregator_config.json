@@ -20,13 +20,13 @@
         "USE": ["title", "text", "keywords"]
     },
     "TDT":{
-        "MODEL_NAME": "lda_300",
+        "MODEL_NAME": "lda_tfidf_300",
+        "MODELS_PATH": "models",
         "USE": ["text"],
-        "REPRESENTATION": "word2vec",
-        "MODEL_PARAM": {
-          "METHOD": "lda",
-          "MAX_NUM_OF_TOPICS": 3
-        }
+        "METHOD": "lda",
+        "REPRESENTATION": "tfidf",
+        "NUM_OF_TOPICS": 1000,
+        "SHOW_TOPN_TOPICS": 3
     },
     "KEYPHRASES":{
         "MODEL_NAME": "rake",
@@ -47,5 +47,10 @@
           "MODEL": "aclust",
           "MAX_DIST": 400
       }
+    },
+    "TEXT_SUMMARIZATION":
+    {
+        "MODEL_NAME": "textrank",
+        "NUM_OF_SENTENCES": 5
     }
 }

@@ -18,7 +18,7 @@ class TextToVector:
         elif self.word_representation=='word2vec':
                 wv_model_path = os.path.join(self.models_path, self.model_name)
                 path=os.path.abspath(wv_model_path)
-                self.model=KeyedVectors.load_word2vec_format(datapath(path), binary=False, limit=50000)
+                self.model=KeyedVectors.load_word2vec_format(datapath(path), binary=False)
         elif self.word_representation=='tfidf':
             print("Do something")
         else:
