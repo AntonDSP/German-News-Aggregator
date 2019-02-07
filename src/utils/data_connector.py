@@ -10,15 +10,14 @@ class NewsReader:
         self.app=app
         self.db=db
         if self.app == 'mongo':
-           self.reader=mongodb.connect2db(db=self.db )
+           self.reader=mongodb.connect2db(db=self.db ).get_collection(name=self.collection)
         elif self.app== 'kafka':
             self.reader= kafka_utils.connectConsumer(self.collection)
 
 
     def read_news(self):
         if self.app == 'mongo':
-            mongo_collection=self.collection
-            mongodb_news_stream = self.reader.german_news.find()
+            mongodb_news_stream = self.reader.find()
             for item in mongodb_news_stream:
                yield NewsItem(item)
         elif self.app== 'kafka':

@@ -20,14 +20,30 @@ class TextSummarizer:
         return summary
 
     def summarize_publications_clusters(self, publications):
-        print()
-        return result_publications
+        new_l_publications=list()
+        clusters=set()
+        for publication in publications:
+            clusters.add(publication.content['cluster'])
+
+        for cluster in clusters:
+            publications_text=''
+            for publication in publications:
+                if publication.content['cluster']==cluster:
+                    publications_text=publications_text+'. '+publication.content['text']
+            summary=self.summarize(publications_text)
+            for publication in publications:
+                if publication.content['cluster']==cluster:
+                    publication.content['cluster_text']=summary
+            new_l_publications.append(publication)
+
+        return new_l_publications
 
 """Main part to test this module"""
 if __name__ == '__main__':
     news_reader = data_connector.NewsReader(app='mongo',db='german_news', collection='publications')
     publications = news_reader.read_news()
     text_summarization_model=TextSummarizer(model_name='textrank', num_of_sentences=5)
+
     for publication in publications:
         try:
             summary = text_summarization_model.summarize(publication.content['text'])

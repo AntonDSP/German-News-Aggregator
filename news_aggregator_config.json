@@ -20,13 +20,11 @@
         "USE": ["title", "text", "keywords"]
     },
     "TDT":{
-        "MODEL_NAME": "lda_tfidf_300",
-        "MODELS_PATH": "models",
+        "MODEL_NAME": "lda",
         "USE": ["text"],
-        "METHOD": "lda",
         "REPRESENTATION": "tfidf",
-        "NUM_OF_TOPICS": 1000,
-        "SHOW_TOPN_TOPICS": 3
+        "NUM_OF_TOPICS": 10,
+        "TIME_RANGE":3
     },
     "KEYPHRASES":{
         "MODEL_NAME": "rake",

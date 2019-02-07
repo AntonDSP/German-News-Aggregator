@@ -22,7 +22,7 @@ class CluterModel:
             publication.similarity_measure=self.similarity_measure
             start=dateutil.parser.parse(publication.content['published'])-datetime.timedelta(days=self.time_range)
             end = dateutil.parser.parse(publication.content['published']) + datetime.timedelta(days=self.time_range)
-            publications_within_time_range=mongo_coll.find({'cluster':{'$exists':True},'published':{'$lt':end, '$gte':start}})
+            publications_within_time_range=mongo_coll.find({'cluster':{'$exists':True},'published':{'$lt':end.isoformat(), '$gte':start.isoformat()}})
             nearest_clusters = {}
             for publication_w_time_range in publications_within_time_range:
                 if publication.is_correlated(publication_w_time_range):

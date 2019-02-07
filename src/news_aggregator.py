@@ -33,8 +33,8 @@ class NewsAggregator:
         print("Keyphrases model is added: "+config['KEYPHRASES']['MODEL_NAME'])
 
         #Intialize topic detection model
-        self.topic_detection_model=topic_detection.TopicDetector(model_name=config['TDT']['MODEL_NAME'], models_path=config['TDT']['MODELS_PATH'], method=['TDT']['METHOD'], \
-                             representation=config['TDT']['REPRESENTATION'], num_topics=config['TDT']['NUM_OF_TOPICS'], collection_name=config['CORPORA']['COLLECTION'], train_corpus=None)
+        self.topic_detection_model=topic_detection.TopicDetector(model_name=config['TDT']['MODEL_NAME'], representation=config['TDT']['REPRESENTATION'], \
+                                                                 num_topics=config['TDT']['NUM_OF_TOPICS'], time_range=config['TDT']['TIME_RANGE'])
         print("Topic detection model is added: "+ config['TDT']['MODEL_NAME'])
 
         #Initialize sentiment analysis model
@@ -60,9 +60,6 @@ class NewsAggregator:
             publication.content['ne_persons']=named_entities['persons']
             publication.content['ne_orgs']=named_entities['orgs']
             publication.content['ne_misc']=named_entities['misc']
-            # Top n discussed topics
-            tokenized_text = self.preprocessor.clean_and_tokenize(publication.concatenate_content(self.config['TDT']['USE']))
-            publications.content['top_topics']=self.topic_detection_model.get_topics(tokenized_text=tokenized_text, show_top_n_topics=self.config['TDT']['SHOW_TOPN_TOPICS'])
             #Sentiment score
             sentiment_scores=self.sentiment_analysis_model.score(publication.concatenate_content(self.config['SENTIMENT_ANALYSIS']['USE']))
             publication.content['polarity']=sentiment_scores['polarity']
@@ -73,16 +70,19 @@ class NewsAggregator:
             tokenized_text = self.preprocessor.clean_and_tokenize(publication.concatenate_content(self.config['CLUSTERING']['USE']))
             publication.clust_features = self.text2vector_model.transform(tokenized_text)
 
+        # Get words of top topic
+        print('Getting words of top topic')
+        publications_with_topics=self.topic_detection_model.assign_topics(publications)
+
         # Cluster assignment
         print("Clustering")
-        publications_with_cluster_assignments = self.cluster_model.assign_clusters(publications)
+        publications_with_cluster_assignments = self.cluster_model.assign_clusters(publications_with_topics)
 
         # Text summarization
         print("Clustering based text summarization")
         publications_after_text_summarization=self.text_summarization_model.summarize_publications_clusters(publications_with_cluster_assignments)
 
         return publications_after_text_summarization
-
 
 
 
@@ -101,8 +101,6 @@ if __name__ == '__main__':
     aggregator=NewsAggregator(news_aggregator_config)
 
     print('#Create reader and writer for input stream')
-
-
     # Write back results to mongo
     writer=data_connector.NewsWriter(app=flow_config['TARGET']['APP'], db=flow_config['TARGET']['DB'], collection=flow_config['TARGET']['COLLECTION'])
 
@@ -120,26 +118,7 @@ if __name__ == '__main__':
             writer.write_news(p)
         print('looping..')
         news_reader.reader.commit()
-        time.sleep(60)
+        time.sleep(300)
     news_reader.reader.close()
 
-    #pubs=aggregator.cluster_model.assign_existing_clusters(news_stream)
-    #clusters=aggregator.cluster_model.create_news_clusters(pubs)
-
-    #for cluster in clusters:
-    #    for p in cluster:
-    #        print("------------------------")
-    #        print(p[0].content['cluster'])
-    #for publ in publications_with_cluster_assignments:
-     #
-    #    print(publ)
-
-
-    # for cluster in clusters:
-    #     writer.write_cluster(cluster)
-    #     for publication in cluster:
-    #         writer.write_news(publication)
-    # print("Cluster generated and published")
-
-
-    print("Finished")
+    print("End of run")
