@@ -11,7 +11,7 @@ class SentimentAnalyzer:
         result={}
         if self.model_name=='blob':
             sentiment_score = TextBlob(text).sentiment
-            result.update({'polarity':float(sentiment_score.polarity,2), 'subjectivity':sentiment_score.subjectivity})
+            result.update({'polarity':round(sentiment_score.polarity,2), 'subjectivity':round(sentiment_score.subjectivity,2)})
         else:
             result=None
         return result

@@ -2,12 +2,17 @@
     "SOURCE": {
         "APP": "kafka",
         "DB": "",
-        "COLLECTION": "publications_crawled"
+        "COLLECTION": "crawled_publications"
     },
     "TARGET": {
         "APP": "kafka",
         "DB": "",
-        "COLLECTION": "processed_publications_test2"
+        "COLLECTION": "gna_publications"
+    },
+    "TARGET_BACKUP": {
+        "APP": "mongo",
+        "DB": "german_news",
+        "COLLECTION": "gna_publications"
     },
     "NEWS_AGGREGATOR_CONFIG": "news_aggregator_config"
 }
