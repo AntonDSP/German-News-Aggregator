@@ -35,7 +35,7 @@ class NewsAggregator:
 
         #Intialize topic detection model
         self.topic_detection_model=topic_detection.TopicDetector(model_name=config['TDT']['MODEL_NAME'], representation=config['TDT']['REPRESENTATION'], \
-                                                                 num_topics=config['TDT']['NUM_OF_TOPICS'], time_range=config['TDT']['TIME_RANGE'])
+                                                             num_topics=config['TDT']['NUM_OF_TOPICS'], time_range=config['TDT']['TIME_RANGE'])
         print('L '+ str(datetime.datetime.now().time())+' Topic detection model is added: '+ config['TDT']['MODEL_NAME'])
 
         #Initialize sentiment analysis model
@@ -44,7 +44,7 @@ class NewsAggregator:
 
         #Initialize cluster model
         self.cluster_model=clustering.CluterModel(model_name=config['CLUSTERING']['MODEL_NAME'], threshold=config['CLUSTERING']['THRESHOLD'] , \
-                                similarity_measure=config['CLUSTERING']['SIMILARITY_MEASURE'], time_range=config['CLUSTERING']['TIME_RANGE'], model_params=config['CLUSTERING']['MODEL_PARAM'])
+                            similarity_measure=config['CLUSTERING']['SIMILARITY_MEASURE'], time_range=config['CLUSTERING']['TIME_RANGE'], model_params=config['CLUSTERING']['MODEL_PARAM'])
         print('L '+ str(datetime.datetime.now().time())+' Clustering model is added: ' + config['CLUSTERING']['MODEL_NAME'])
 
         #Initialize text summarization model
@@ -53,6 +53,7 @@ class NewsAggregator:
 
 
     def run_pipeline(self, publications):
+
         print('L  '+ str(datetime.datetime.now().time())+' Event description extraction and feature generation')
         for publication in publications:
             # Named entities recognition
@@ -65,7 +66,7 @@ class NewsAggregator:
             sentiment_scores=self.sentiment_analysis_model.score(publication.concatenate_content(self.config['SENTIMENT_ANALYSIS']['USE']))
             publication.content['polarity']=sentiment_scores['polarity']
             publication.content['subjectivity']=sentiment_scores['subjectivity']
-            #Keywords
+            #Keyphrases
             publication.content['keyphrases']=self.keyphrase_model.extract(publication.concatenate_content(self.config['KEYPHRASES']['USE']))
             #Clustering, feature generation
             tokenized_text = self.preprocessor.clean_and_tokenize(publication.concatenate_content(self.config['CLUSTERING']['USE']))
@@ -74,15 +75,17 @@ class NewsAggregator:
         if  publications:
             # Get words of top topic
             print('L '+ str(datetime.datetime.now().time())+' Getting words of top topic')
-            publications=self.topic_detection_model.assign_topics(publications)
+            publications_with_topics=self.topic_detection_model.assign_topics(publications)
+
             # Cluster assignment
             print('L '+ str(datetime.datetime.now().time())+' Clustering')
-            publications = self.cluster_model.assign_clusters(publications)
+            publications_with_clusters = self.cluster_model.assign_clusters(publications_with_topics)
+
             # Text summarization
             print('L '+ str(datetime.datetime.now().time())+' Clustering based text summarization')
-            publications=self.text_summarization_model.summarize_publications_clusters(publications)
+            publications_with_text_summaries=self.text_summarization_model.summarize_publications_clusters(publications_with_clusters)
 
-        return publications
+        return publications_with_text_summaries
 
 
 
@@ -109,21 +112,33 @@ if __name__ == '__main__':
     news_reader=data_connector.NewsReader(app=flow_config['SOURCE']['APP'], db=flow_config['SOURCE']['DB'],collection=flow_config['SOURCE']['COLLECTION'])
 
     while(True):
+        start=datetime.datetime.now().second
         print('#  '+ str(datetime.datetime.now().time())+' Get news')
         news_stream = news_reader.read_news()
         publications=list(news_stream)
-        publication=publications[:100]
-        print('#  '+ str(datetime.datetime.now().time())+' Run pipeline for '+str(len(publications))+" publications")
-        publications_result=aggregator.run_pipeline(publications=publications)
-        i=0
-        print('# '+ str(datetime.datetime.now().time())+'  Write results')
-        for publication in publications_result:
-            #target_writer.write_news(publication)
-            #backup_writer.write_news(publication)
-            print(publication.content)
-        #news_reader.reader.commit()
-        print('#  '+ str(datetime.datetime.now().time())+' looping..')
-        time.sleep(300)
+        news_reader.reader.commit()
+
+        # Process publications in chunks, only for the initial run to get faster the first results. In streaming modus, it will be never (with current crawling :P) 1000 publications withtin 5 minutes
+        offset = 0
+        chunk_size = 1000
+        last_element = 0
+        while (last_element < len(publications)):
+            last_element = (offset + chunk_size) if (offset + chunk_size < len(publications)) else len(publications)
+            publications_chunk = publications[offset:last_element]
+            print('#  '+ str(datetime.datetime.now().time())+' Run pipeline for '+str(len(publications_chunk))+" publications")
+            publications_chunk=aggregator.run_pipeline(publications_chunk)
+            print('# '+ str(datetime.datetime.now().time())+'  Write results: '+str(len(publications_chunk))+" publications")
+            for publication in publications_chunk:
+                target_writer.write_news(publication)
+                backup_writer.write_news(publication)
+            offset = last_element
+
+        end=datetime.datetime.now().second
+        if (300-(end-start))>0:
+            sleep_time=300-(end-start)
+            print('#  ' + str(datetime.datetime.now().time()) + ' looping.. ' + str(round((sleep_time/60),0))+ ' minutes')
+            time.sleep(sleep_time)
+
     news_reader.reader.close()
 
     print("End of run")

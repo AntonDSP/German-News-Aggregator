@@ -25,9 +25,10 @@ def publish_to_kafka(collection, kafka_topic_name):
         kafka_utils.publish_message(producer, kafka_topic_name, news_item['url'], news_item)
 
 def write_news_item(news_item, db, collection_name):
-    del news_item['_id']
+    if '_id' in news_item:
+        del news_item['_id']
     db[collection_name].insert_one(dict(news_item))
-    print('Message published successfully: ' + str(news_item['publication_id']))
+    print('Message published successfully in mongo: ' + str(news_item['publication_id']))
 
 def write_cluster(news_cluster, db, collection_name):
     news_ids=[n.content['publication_id'] for n in news_cluster]
@@ -39,7 +40,7 @@ def write_cluster(news_cluster, db, collection_name):
 
 if __name__ == '__main__':
     print('Running scraped news publisher..')
-    mongo_db=connect2db('german_news2')
-    news_collection=mongo_collection(collection_name='german_news2', db=mongo_db)
-    publish_to_kafka(news_collection,kafka_topic_name='scraped_news')
+    mongo_db=connect2db('german_news')
+    news_collection=mongo_collection(collection_name='publications', db=mongo_db)
+    publish_to_kafka(news_collection,kafka_topic_name='crawled_publications')
     print('Publishing finished')

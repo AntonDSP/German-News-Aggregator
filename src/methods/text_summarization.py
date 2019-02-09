@@ -20,34 +20,21 @@ class TextSummarizer:
         return summary
 
     def summarize_publications_clusters(self, publications):
-        new_l_publications=list()
-        clusters=set()
+        publications=list(publications)
         for publication in publications:
-            clusters.add(publication.content['cluster'])
-
-        for cluster in clusters:
             publications_text=''
-            for publication in publications:
-                if publication.content['cluster']==cluster:
-                    publications_text=publications_text+'. '+publication.content['text']
-            summary=self.summarize(publications_text)
-            for publication in publications:
-                if publication.content['cluster']==cluster:
-                    publication.content['cluster_text']=summary
-            new_l_publications.append(publication)
-
-        return new_l_publications
+            for p in publications:
+                if ('cluster' in publication.content) and ('cluster' in p.content) and publication.content['cluster']==p.content['cluster']:
+                    publications_text = publications_text + '. ' + p.content['text']
+            publication.content['cluster_text']=self.summarize(publications_text)
+        return publications
 
 """Main part to test this module"""
 if __name__ == '__main__':
-    news_reader = data_connector.NewsReader(app='mongo',db='german_news', collection='publications')
+    news_reader = data_connector.NewsReader(app='mongo',db='german_news', collection='gna_publications')
     publications = news_reader.read_news()
-    text_summarization_model=TextSummarizer(model_name='textrank', num_of_sentences=5)
-
-    for publication in publications:
-        try:
-            summary = text_summarization_model.summarize(publication.content['text'])
-            print(summary)
-        except Exception as ex:
-            print(str(ex))
-            print("No summary was generated")
+    text_summarization_model=TextSummarizer(model_name='lexrank', num_of_sentences=5)
+    l=list(publications)
+    l2=text_summarization_model.summarize_publications_clusters(l[:100])
+    for publication in l2:
+        print(publication.content['publication_id'] + ' ' + publication.content['cluster']+ ' '+publication.content['cluster_text'])

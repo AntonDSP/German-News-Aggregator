@@ -23,8 +23,8 @@
         "MODEL_NAME": "lda",
         "USE": ["text"],
         "REPRESENTATION": "tfidf",
-        "NUM_OF_TOPICS": 10,
-        "TIME_RANGE":3
+        "NUM_OF_TOPICS": 20,
+        "TIME_RANGE":1
     },
     "KEYPHRASES":{
         "MODEL_NAME": "rake",
@@ -48,7 +48,7 @@
     },
     "TEXT_SUMMARIZATION":
     {
-        "MODEL_NAME": "textrank",
+        "MODEL_NAME": "lexrank",
         "NUM_OF_SENTENCES": 5
     }
 }

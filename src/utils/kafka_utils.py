@@ -20,7 +20,7 @@ def connectConsumer(topic_name: str)-> KafkaConsumer:
         KafkaConsumer: Kafka consumer object as stream of news items
     """
     return KafkaConsumer(topic_name, auto_offset_reset='earliest', client_id='german-news-aggregator', bootstrap_servers=[server], api_version=(0, 10), \
-                         consumer_timeout_ms=1000,  max_poll_interval_ms=1800000, request_timeout_ms=2100000)
+                         consumer_timeout_ms=1000, group_id = 'trevis', enable_auto_commit = True, max_poll_interval_ms=1800000, request_timeout_ms=2100000)
 
     #group_id = 'my-group-test5', enable_auto_commit = True,
 
@@ -49,7 +49,7 @@ def publish_message(producer: KafkaProducer, topic_name: str, key: bytes, value:
         value_bytes = dumps(value).encode("utf-8")
         producer.send(topic_name, key=key_bytes, value=value_bytes)
         producer.flush()
-        print('Message published successfully: ' + key)
+        print('Message published successfully in kafka: ' + value['publication_id'])
     except Exception as ex:
         print('Exception in publishing message')
         print(str(ex))

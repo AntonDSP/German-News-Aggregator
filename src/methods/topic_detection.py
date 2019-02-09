@@ -48,9 +48,12 @@ class TopicDetector:
                 most_relevant_topic_id=max(topic_dist_vector, key=lambda item: item[1])[0]
                 top_words=topic_detection_model.get_topic_terms(topicid=most_relevant_topic_id)
                 publication.content['topics']=[dictionary.id2token[t[0]] for t in top_words]
-            except:
+            except Exception as ex:
+                print(str(ex))
+                print('Exception while extracting topics')
                 publication.content['topics']=''
-            new_l_publications.append(publication)
+            finally:
+                new_l_publications.append(publication)
 
         return new_l_publications
 
