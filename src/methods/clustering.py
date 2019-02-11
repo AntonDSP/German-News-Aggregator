@@ -12,6 +12,11 @@ class CluterModel:
         self.similarity_measure=similarity_measure
         self.model_params=model_params
         self.time_range=time_range
+        if self.model_name=='aclust':
+            self.max_dist=self.model_params['MAX_DIST']
+            self.max_skip=self.model_params['MAX_SKIP']
+            self.linkage=self.model_params['LINKAGE']
+
 
     def assign_existing_clusters(self, publications):
         # Check for every publication if similar publications within time range are already exists and assign the same cluster
@@ -38,7 +43,11 @@ class CluterModel:
 
     def create_news_clusters(self, publications):
         all_other_publications = [publication for publication in publications if publication.content['cluster'] == '']
-        clusters = (cluster for cluster in aclust.mclust(all_other_publications, max_dist=0.9, max_merge_dist=0.9, max_skip=100))
+        if self.model_name=='aclust':
+            clusters = (cluster for cluster in aclust.mclust(all_other_publications, max_dist=self.max_dist, max_merge_dist=self.max_dist, max_skip=self.max_skip, linkage=self.linkage))
+        else:
+            print("The cluster model is not implemented yet")
+            clusters=None
         new_l_clusters=list(clusters)
         return new_l_clusters
 

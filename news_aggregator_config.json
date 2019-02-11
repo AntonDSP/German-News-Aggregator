@@ -24,7 +24,7 @@
         "USE": ["text"],
         "REPRESENTATION": "tfidf",
         "NUM_OF_TOPICS": 20,
-        "TIME_RANGE":1
+        "TIME_RANGE":2
     },
     "KEYPHRASES":{
         "MODEL_NAME": "rake",
@@ -41,9 +41,11 @@
         "SIMILARITY_MEASURE": "cosine",
         "THRESHOLD": 0.5,
         "TIME_RANGE": 3,
+        "MODEL_NAME": "aclust",
         "MODEL_PARAM": {
-          "MODEL": "aclust",
-          "MAX_DIST": 400
+          "MAX_SKIP": 100,
+          "MAX_DIST": 0.5,
+          "LINKAGE": "single"
       }
     },
     "TEXT_SUMMARIZATION":

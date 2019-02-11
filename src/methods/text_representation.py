@@ -1,7 +1,7 @@
 # Provide code for differen text representations
 import os
 from gensim import corpora
-from gensim.models import KeyedVectors
+from gensim.models import KeyedVectors, TfidfModel
 from gensim.test.utils import datapath
 from src.utils import data_connector
 from src.methods import preprocessing
@@ -20,7 +20,10 @@ class TextToVector:
                 path=os.path.abspath(wv_model_path)
                 self.model=KeyedVectors.load_word2vec_format(datapath(path), binary=False)
         elif self.word_representation=='tfidf':
-            print("Do something")
+            dictionary_path = os.path.join(self.models_path, self.model_name)
+            self.dictionary = corpora.Dictionary.load(dictionary_path)
+            tf_idf_model_path=os.path.join(self.models_path, self.model_name)
+            self.tfidf_model=TfidfModel.load(tf_idf_model_path)
         else:
             print('Unknown word representation')
 
@@ -40,7 +43,9 @@ class TextToVector:
             arr_vectors=numpy.mean(list_of_vectors,axis=0)
             return arr_vectors
         elif self.word_representation=='tfidf':
-            print("Do something")
+            self.dictionary.add_documents(tokenized_document)
+            doc2bow_vec = self.dictionary.doc2bow(tokenized_document)
+            return self.tfidf_model[doc2bow_vec]
         else:
             print("Unknown word representation")
 
