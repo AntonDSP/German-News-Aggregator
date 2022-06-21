@@ -23,7 +23,7 @@ multi-rake==0.0.1
 murmurhash==1.0.1
 networkx==2.2
 nltk==3.4
-numpy==1.16.1
+numpy==1.22.0
 pkg-resources==0.0.0
 plac==0.9.6
 preshed==2.0.1
